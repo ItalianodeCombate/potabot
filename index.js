@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
-const token = 'MTM0Mjk0Njc2MzE2MTYwNDE5Nw.GDRk1k.6NtbV-Xmz_VfhvMWX5ryuPctY7IEDyDxF501c8'; // Reemplaza con el token de tu bot
+const token = process.env.DISCORD_TOKEN;
 
 client.on('ready', () => {
   console.log(`Bot conectado como ${client.user.tag}`);
