@@ -53,6 +53,7 @@ client.on('ready', async () => {
     } catch (error) {
         console.error(error);
     }
+    client.user.setActivity('Próximamente...', { type: 'PLAYING' }); // Establecer el estado del bot
 });
 
 client.on('interactionCreate', async (interaction) => {
