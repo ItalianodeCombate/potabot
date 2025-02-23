@@ -102,8 +102,12 @@ client.on('interactionCreate', async (interaction) => {
         }
     } else if (commandName === 'unmute') {
         const user = options.getUser('usuario');
+        const member = interaction.guild.members.cache.get(user.id);
+        if (!member) {
+            return interaction.reply('Usuario no encontrado en el servidor.');
+        }
         try {
-            await interaction.guild.members.cache.get(user.id).timeout(null);
+            await member.timeout(null);
             await interaction.reply(`${user.tag} ha sido desilenciado.`);
         } catch (error) {
             console.error(error);
