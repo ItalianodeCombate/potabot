@@ -40,9 +40,15 @@ const commands = [
         description: 'Desilencia a un usuario',
         options: [{ name: 'usuario', type: 6, description: 'Usuario a desilenciar', required: true }],
     },
+    {
+        name: 'warn',
+        description: 'Advierte a un usuario',
+        options: [{ name: 'usuario', type: 6, description: 'Usuario a advertir', required: true }],
+    },
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
+const userWarns = {}; // Objeto para almacenar las advertencias de los usuarios
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -53,7 +59,7 @@ client.on('ready', async () => {
     } catch (error) {
         console.error(error);
     }
-    client.user.setActivity('Próximamente...', { type: 'PLAYING' }); // Establecer el estado del bot
+    client.user.setActivity('Próximamente...', { type: 'PLAYING' });
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -114,6 +120,13 @@ client.on('interactionCreate', async (interaction) => {
             console.error(error);
             await interaction.reply('No pude desilenciar a ese usuario.');
         }
+    } else if (commandName === 'warn') {
+        const user = options.getUser('usuario');
+        if (!userWarns[user.id]) {
+            userWarns[user.id] = 0;
+        }
+        userWarns[user.id]++;
+        await interaction.reply(`${user.tag} ha sido warneado y ahora tiene ${userWarns[user.id]} warns.`);
     }
 });
 
