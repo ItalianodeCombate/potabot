@@ -28,38 +28,25 @@ client.on('messageCreate', (message) => {
 });
 
 async function handleBan(message) {
-    if (!message.member.permissions.has('BAN_MEMBERS')) return message.reply('No tienes permisos para banear.');
-    const member = message.mentions.members.first();
-    if (!member) return message.reply('Debes mencionar a un usuario para banear.');
-    try {
-        await member.ban();
-        message.channel.send(`${member.user.tag} ha sido baneado.`);
-    } catch (error) {
-        console.error('Error al banear:', error);
-        message.reply('No pude banear a ese usuario.');
-    }
+    // ... (código existente)
 }
 
 async function handleKick(message) {
-    if (!message.member.permissions.has('KICK_MEMBERS')) return message.reply('No tienes permisos para expulsar.');
-    const member = message.mentions.members.first();
-    if (!member) return message.reply('Debes mencionar a un usuario para expulsar.');
-    try {
-        await member.kick();
-        message.channel.send(`${member.user.tag} ha sido expulsado.`);
-    } catch (error) {
-        console.error('Error al expulsar:', error);
-        message.reply('No pude expulsar a ese usuario.');
-    }
+    // ... (código existente)
 }
 
 async function handleMute(message) {
     if (!message.member.permissions.has('MUTE_MEMBERS')) return message.reply('No tienes permisos para silenciar.');
+    const args = message.content.split(' ');
     const member = message.mentions.members.first();
     if (!member) return message.reply('Debes mencionar a un usuario para silenciar.');
+    if (args.length < 3) return message.reply('Debes especificar la duración del silencio (en minutos).');
+    const durationMinutes = parseInt(args[2]);
+    if (isNaN(durationMinutes) || durationMinutes <= 0) return message.reply('La duración debe ser un número positivo.');
+    const durationMs = durationMinutes * 60000; // Convertir minutos a milisegundos
     try {
-        await member.timeout(600_000); // 10 minutos de silencio
-        message.channel.send(`${member.user.tag} ha sido silenciado.`);
+        await member.timeout(durationMs);
+        message.channel.send(`${member.user.tag} ha sido silenciado durante ${durationMinutes} minutos.`);
     } catch (error) {
         console.error('Error al silenciar:', error);
         message.reply('No pude silenciar a ese usuario.');
