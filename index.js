@@ -1,27 +1,25 @@
-const { Client, GatewayIntentBits } = require('discord.js');
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const Discord = require('discord.js');
+const client = new Discord.Client({ intents: ["Guilds", "GuildMessages", "MessageContent"] });
 
 const token = process.env.DISCORD_TOKEN;
+const ipMessage = '<:pepe_happy:1232008882935693322> **armaklandia.hidenmc.com**\n1.8 - 1.21.4'; // Mensaje con emoji e IP
 
 client.on('ready', () => {
-  console.log(`Bot conectado como ${client.user.tag}`);
-
-  // Establecer el estado del bot
-  client.user.setActivity('Próximamente...', { type: 'PLAYING' }); // Puedes cambiar 'PLAYING' por otro tipo
-
-  //Otras opciones de tipo son:
-  //LISTENING: Escuchando
-  //WATCHING: Viendo
-  //COMPETING: Compitiendo
-  //STREAMING: Transmitiendo.
+    console.log(`Bot logged in as ${client.user.tag}!`);
+    client.user.setActivity('Próximamente...', { type: 'PLAYING' });
 });
 
-client.on('messageCreate', message => {
-  if (message.content === '!ping') {
-    message.reply('Pong!');
-  } else if (message.content === '!ip') {
-    message.reply('<:pepe_happy:1232008882935693322> **armaklandia.hidenmc.com**\n\n1.8 - 1.21.4\n<@1021789210212053042>');
-  }
+client.on('messageCreate', (message) => {
+    if (message.content.startsWith('/say')) {
+        const text = message.content.slice(5).trim();
+        if (text) {
+            message.channel.send(text);
+        } else {
+            message.reply('Debes proporcionar un texto después de /say.');
+        }
+    } else if (message.content === '!ip') {
+        message.channel.send(ipMessage);
+    }
 });
 
 client.login(token);
