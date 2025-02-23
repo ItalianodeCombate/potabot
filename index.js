@@ -5,6 +5,15 @@ const token = process.env.DISCORD_TOKEN;
 
 client.on('ready', () => {
   console.log(`Bot conectado como ${client.user.tag}`);
+
+  // Establecer el estado del bot
+  client.user.setActivity('Próximamente...', { type: 'PLAYING' }); // Puedes cambiar 'PLAYING' por otro tipo
+
+  //Otras opciones de tipo son:
+  //LISTENING: Escuchando
+  //WATCHING: Viendo
+  //COMPETING: Compitiendo
+  //STREAMING: Transmitiendo.
 });
 
 client.on('messageCreate', message => {
