@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-require('./keep_alive');
+const keep_alive = require('./keep_alive.js'); // Incluye el servidor web
 const { Client, GatewayIntentBits, Routes } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
@@ -103,3 +103,42 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply(`${usuario.tag} ha sido silenciado durante ${duracion} minutos.`);
         } catch (error) {
             console.error(error);
+            await interaction.reply('No pude silenciar a ese usuario.');
+        }
+    } else if (commandName === 'unban') {
+        const usuarioId = options.getString('usuario_id');
+        try {
+            await interaction.guild.members.unban(usuarioId);
+            await interaction.reply(`El usuario con ID ${usuarioId} ha sido desbaneado.`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('No pude desbanear a ese usuario.');
+        }
+    } else if (commandName === 'unmute') {
+        const usuario = options.getUser('usuario');
+        try {
+            await interaction.guild.members.cache.get(usuario.id).timeout(null);
+            await interaction.reply(`${usuario.tag} ha sido desilenciado.`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('No pude desilenciar a ese usuario.');
+        }
+    } else if (commandName === 'warn') {
+        const usuario = options.getUser('usuario');
+        if (!userWarns[usuario.id]) {
+            userWarns[usuario.id] = 0;
+        }
+        userWarns[usuario.id]++;
+        await interaction.reply(`${usuario.tag} ha sido advertido. Total de advertencias: ${userWarns[usuario.id]}`);
+    } else if (commandName === 'afk') {
+        if (afkUsers[user.id]) {
+            delete afkUsers[user.id];
+            await interaction.reply('Ya no estás AFK.');
+        } else {
+            afkUsers[user.id] = true;
+            await interaction.reply('Ahora estás AFK.');
+        }
+    }
+});
+
+client.login(token);
