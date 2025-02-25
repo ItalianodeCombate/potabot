@@ -1,5 +1,6 @@
+const Discord = require('discord.js');
+const keep_alive = require('./keep_alive.js');
 const { Client, GatewayIntentBits, Routes } = require('discord.js');
-const keep_alive = require('./keep_alive.js')
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const token = process.env.DISCORD_TOKEN;
@@ -48,7 +49,7 @@ const commands = [
     },
     {
         name: 'afk',
-        description: 'Establece tu estado como AFK',
+        description: 'Activa/desactiva tu estado AFK',
     },
 ];
 
@@ -77,77 +78,28 @@ client.on('interactionCreate', async (interaction) => {
         const texto = options.getString('texto');
         await interaction.reply(texto);
     } else if (commandName === 'ban') {
-        const user = options.getUser('usuario');
+        const usuario = options.getUser('usuario');
         try {
-            await interaction.guild.members.ban(user);
-            await interaction.reply(`${user.tag} ha sido baneado.`);
+            await interaction.guild.members.ban(usuario);
+            await interaction.reply(`${usuario.tag} ha sido baneado.`);
         } catch (error) {
             console.error(error);
             await interaction.reply('No pude banear a ese usuario.');
         }
     } else if (commandName === 'kick') {
-        const user = options.getUser('usuario');
+        const usuario = options.getUser('usuario');
         try {
-            await interaction.guild.members.kick(user);
-            await interaction.reply(`${user.tag} ha sido expulsado.`);
+            await interaction.guild.members.kick(usuario);
+            await interaction.reply(`${usuario.tag} ha sido expulsado.`);
         } catch (error) {
             console.error(error);
             await interaction.reply('No pude expulsar a ese usuario.');
         }
     } else if (commandName === 'mute') {
-        const user = options.getUser('usuario');
+        const usuario = options.getUser('usuario');
         const duracion = options.getInteger('duracion');
         try {
-            await interaction.guild.members.cache.get(user.id).timeout(duracion * 60000);
-            await interaction.reply(`${user.tag} ha sido silenciado durante ${duracion} minutos.`);
+            await interaction.guild.members.cache.get(usuario.id).timeout(duracion * 60000);
+            await interaction.reply(`${usuario.tag} ha sido silenciado durante ${duracion} minutos.`);
         } catch (error) {
             console.error(error);
-            await interaction.reply('No pude silenciar a ese usuario.');
-        }
-    } else if (commandName === 'unban') {
-        const userId = options.getString('usuario_id');
-        try {
-            await interaction.guild.members.unban(userId);
-            await interaction.reply(`Usuario con ID ${userId} ha sido desbaneado.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude desbanear a ese usuario.');
-        }
-    } else if (commandName === 'unmute') {
-        const usuario = options.getUser('usuario');
-        const member = interaction.guild.members.cache.get(usuario.id);
-        if (!member) {
-            return interaction.reply('Usuario no encontrado en el servidor.');
-        }
-        try {
-            await member.timeout(null);
-            await interaction.reply(`${usuario.tag} ha sido desilenciado.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude desilenciar a ese usuario.');
-        }
-    } else if (commandName === 'warn') {
-        const usuario = options.getUser('usuario');
-        if (!userWarns[usuario.id]) {
-            userWarns[usuario.id] = 0;
-        }
-        userWarns[usuario.id]++;
-        await interaction.reply(`${usuario.tag} ha sido warneado y ahora tiene ${userWarns[usuario.id]} warns.`);
-    } else if (commandName === 'afk') {
-        afkUsers[user.id] = true;
-        await interaction.reply('Has establecido tu estado como AFK.');
-    }
-});
-
-client.on('messageCreate', async (message) => {
-    if (message.mentions.users.size > 0) {
-        const mentionedUsers = message.mentions.users;
-        mentionedUsers.forEach(async (mentionedUser) => {
-            if (afkUsers[mentionedUser.id]) {
-                await message.channel.send(`${mentionedUser.tag} está AFK.`);
-            }
-        });
-    }
-});
-
-client.login(token);
