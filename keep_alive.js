@@ -1,6 +1,10 @@
-var http = require('http'); 
+const express = require('express');
+const app = express();
 
-http.createServer (function (req, res) { 
- res.write("I'm alive"); 
- res.end(); 
-}).listen(8080);
+app.get('/', (req, res) => {
+  res.send('El bot está online!');
+});
+
+app.listen(3000, () => {
+  console.log('Servidor iniciado en el puerto 3000');
+});
