@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const keep_alive = require('./keep_alive.js');
+require('./keep_alive');
 const { Client, GatewayIntentBits, Routes } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
