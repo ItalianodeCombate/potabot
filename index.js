@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits, Routes } = require('discord.js');
+const keep_alive = require('./keep_alive.js')
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 const token = process.env.DISCORD_TOKEN;
