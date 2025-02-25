@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits, Routes } = require('discord.js');
 const keep_alive = require('./keep_alive.js')
 const { REST } = require('@discordjs/rest');
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const token = process.env.DISCORD_TOKEN;
 const commands = [
     {
@@ -46,10 +46,15 @@ const commands = [
         description: 'Advierte a un usuario',
         options: [{ name: 'usuario', type: 6, description: 'Usuario a advertir', required: true }],
     },
+    {
+        name: 'afk',
+        description: 'Establece tu estado como AFK',
+    },
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
-const userWarns = {}; // Objeto para almacenar las advertencias de los usuarios
+const userWarns = {};
+const afkUsers = {};
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -65,7 +70,7 @@ client.on('ready', async () => {
 
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
-    const { commandName, options } = interaction;
+    const { commandName, options, user } = interaction;
     if (commandName === 'ping') {
         await interaction.reply('Pong!');
     } else if (commandName === 'say') {
@@ -109,25 +114,39 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply('No pude desbanear a ese usuario.');
         }
     } else if (commandName === 'unmute') {
-        const user = options.getUser('usuario');
-        const member = interaction.guild.members.cache.get(user.id);
+        const usuario = options.getUser('usuario');
+        const member = interaction.guild.members.cache.get(usuario.id);
         if (!member) {
             return interaction.reply('Usuario no encontrado en el servidor.');
         }
         try {
             await member.timeout(null);
-            await interaction.reply(`${user.tag} ha sido desilenciado.`);
+            await interaction.reply(`${usuario.tag} ha sido desilenciado.`);
         } catch (error) {
             console.error(error);
             await interaction.reply('No pude desilenciar a ese usuario.');
         }
     } else if (commandName === 'warn') {
-        const user = options.getUser('usuario');
-        if (!userWarns[user.id]) {
-            userWarns[user.id] = 0;
+        const usuario = options.getUser('usuario');
+        if (!userWarns[usuario.id]) {
+            userWarns[usuario.id] = 0;
         }
-        userWarns[user.id]++;
-        await interaction.reply(`${user.tag} ha sido warneado y ahora tiene ${userWarns[user.id]} warns.`);
+        userWarns[usuario.id]++;
+        await interaction.reply(`${usuario.tag} ha sido warneado y ahora tiene ${userWarns[usuario.id]} warns.`);
+    } else if (commandName === 'afk') {
+        afkUsers[user.id] = true;
+        await interaction.reply('Has establecido tu estado como AFK.');
+    }
+});
+
+client.on('messageCreate', async (message) => {
+    if (message.mentions.users.size > 0) {
+        const mentionedUsers = message.mentions.users;
+        mentionedUsers.forEach(async (mentionedUser) => {
+            if (afkUsers[mentionedUser.id]) {
+                await message.channel.send(`${mentionedUser.tag} está AFK.`);
+            }
+        });
     }
 });
 
