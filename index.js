@@ -158,33 +158,3 @@ client.on('interactionCreate', async (interaction) => {
             console.error(error);
             await interaction.reply('No pude desilenciar a ese usuario.');
         }
-    } else if (commandName === 'warn') {
-        const usuario = options.getUser('usuario');
-        if (!userWarns[usuario.id]) {
-            userWarns[usuario.id] = 0;
-        }
-        userWarns[usuario.id]++;
-        await interaction.reply(`${usuario.tag} ha sido advertido. Total de advertencias: ${userWarns[usuario.id]}`);
-    } else if (commandName === 'afk') {
-        if (afkUsers[user.id]) {
-            delete afkUsers[user.id];
-            await interaction.reply('Ya no estás AFK.');
-        } else {
-            afkUsers[user.id] = true;
-            await interaction.reply('Ahora estás AFK.');
-        }
-    } else if (commandName === 'md_user') {
-        const usuario = options.getUser('usuario');
-        const mensaje = options.getString('mensaje');
-        try {
-            await usuario.send(mensaje);
-            await interaction.reply(`Mensaje enviado a ${usuario.tag}.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude enviar el mensaje. Asegúrate de que el usuario tenga los mensajes directos activados.');
-        }
-    } else if (commandName === 'lockdown') {
-        try {
-            await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, { SEND_MESSAGES: false });
-            await interaction.reply('Canal bloqueado.');
-        } catch (error) {
