@@ -134,7 +134,8 @@ client.on('interactionCreate', async (interaction) => {
         const usuario = options.getUser('usuario');
         const duracion = options.getInteger('duracion');
         try {
-            await interaction.guild.members.cache.get(usuario.id).timeout(duracion * 60000);
+            const member = await interaction.guild.members.fetch(usuario.id);
+            await member.timeout(duracion * 60000);
             await interaction.reply(`${usuario.tag} ha sido silenciado durante ${duracion} minutos.`);
         } catch (error) {
             console.error(error);
@@ -152,7 +153,8 @@ client.on('interactionCreate', async (interaction) => {
     } else if (commandName === 'unmute') {
         const usuario = options.getUser('usuario');
         try {
-            await interaction.guild.members.cache.get(usuario.id).timeout(null);
+            const member = await interaction.guild.members.fetch(usuario.id);
+            await member.timeout(null);
             await interaction.reply(`${usuario.tag} ha sido desilenciado.`);
         } catch (error) {
             console.error(error);
@@ -184,3 +186,29 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply('No pude enviar el mensaje. Asegúrate de que el usuario tenga los mensajes directos activados.');
         }
     } else if (commandName === 'lockdown') {
+        try {
+            const permissions = channel.permissionOverwrites.cache;
+            const everyone = permissions.get(channel.guild.roles.everyone.id);
+            const isLocked = everyone && everyone.deny.has('SEND_MESSAGES');
+            if (isLocked) {
+                // Desbloquear el canal
+                await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
+                    SEND_MESSAGES: null
+                });
+                await interaction.reply('El canal ha sido desbloqueado.');
+            } else {
+                // Bloquear el canal
+                await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
+                    SEND_MESSAGES: false
+                });
+                await interaction.reply('El canal ha sido bloqueado.');
+            }
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('No pude bloquear o desbloquear el canal.');
+        }
+    }
+});
+
+client.login(token);
+
