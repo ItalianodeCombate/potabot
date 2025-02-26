@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const keep_alive = require('./keep_alive.js'); // Incluye el servidor web
+const keep_alive = require('./keep_alive.js');
 const { Client, GatewayIntentBits, Routes } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
@@ -50,6 +50,14 @@ const commands = [
     {
         name: 'afk',
         description: 'Activa/desactiva tu estado AFK',
+    },
+    {
+        name: 'md_user',
+        description: 'Envía un mensaje directo a un usuario específico',
+        options: [
+            { name: 'usuario', type: 6, description: 'Usuario a quien enviar el mensaje', required: true },
+            { name: 'mensaje', type: 3, description: 'Mensaje a enviar', required: true },
+        ],
     },
 ];
 
@@ -137,6 +145,16 @@ client.on('interactionCreate', async (interaction) => {
         } else {
             afkUsers[user.id] = true;
             await interaction.reply('Ahora estás AFK.');
+        }
+    } else if (commandName === 'md_user') {
+        const usuario = options.getUser('usuario');
+        const mensaje = options.getString('mensaje');
+        try {
+            await usuario.send(mensaje);
+            await interaction.reply(`Mensaje enviado a ${usuario.tag}.`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('No pude enviar el mensaje. Asegúrate de que el usuario tenga los mensajes directos activados.');
         }
     }
 });
