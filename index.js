@@ -1,6 +1,6 @@
 const Discord = require('discord.js');
 const keep_alive = require('./keep_alive.js');
-const { Client, GatewayIntentBits, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const token = process.env.DISCORD_TOKEN;
@@ -59,11 +59,30 @@ const commands = [
             { name: 'mensaje', type: 3, description: 'Mensaje a enviar', required: true },
         ],
     },
+    {
+        name: 'lockdown',
+        description: 'Bloquea el canal actual',
+    },
+    {
+        name: 'avatar',
+        description: 'Muestra el avatar de un usuario',
+        options: [{ name: 'usuario', type: 6, description: 'Usuario del que mostrar el avatar', required: false }],
+    },
+    {
+        name: 'purge',
+        description: 'Elimina una cantidad específica de mensajes',
+        options: [{ name: 'cantidad', type: 4, description: 'Cantidad de mensajes a eliminar', required: true }],
+    },
+    {
+        name: 'top',
+        description: 'Muestra los usuarios más activos',
+    },
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
 const userWarns = {};
 const afkUsers = {};
+const userActivity = {};
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -77,9 +96,17 @@ client.on('ready', async () => {
     client.user.setActivity('Próximamente...', { type: 'PLAYING' });
 });
 
+client.on('messageCreate', (message) => {
+    if (message.author.bot) return;
+    if (!userActivity[message.author.id]) {
+        userActivity[message.author.id] = 0;
+    }
+    userActivity[message.author.id]++;
+});
+
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
-    const { commandName, options, user } = interaction;
+    const { commandName, options, user, channel } = interaction;
     if (commandName === 'ping') {
         await interaction.reply('Pong!');
     } else if (commandName === 'say') {
@@ -156,7 +183,7 @@ client.on('interactionCreate', async (interaction) => {
             console.error(error);
             await interaction.reply('No pude enviar el mensaje. Asegúrate de que el usuario tenga los mensajes directos activados.');
         }
-    }
-});
-
-client.login(token);
+    } else if (commandName === 'lockdown') {
+        try {
+            await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, { SEND_MESSAGES: false });
+            await interaction
