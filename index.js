@@ -186,4 +186,5 @@ client.on('interactionCreate', async (interaction) => {
     } else if (commandName === 'lockdown') {
         try {
             await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, { SEND_MESSAGES: false });
-            await interaction.
+            await interaction.reply('Canal bloqueado.');
+        } catch (error) {
