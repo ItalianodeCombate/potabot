@@ -189,3 +189,10 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply('Canal bloqueado.');
         } catch (error) {
             console.error(error);
+            await interaction.reply('No pude bloquear el canal.');
+        }
+    }
+});
+
+client.login(token);
+
