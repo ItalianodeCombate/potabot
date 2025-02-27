@@ -6,10 +6,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 const token = process.env.DISCORD_TOKEN;
 
 const commands = [
-    {
-        name: 'ping',
-        description: 'Responde con pong!',
-    },
+    { name: 'ping', description: 'Responde con pong!' },
     {
         name: 'say',
         description: 'Repite lo que digas',
@@ -84,6 +81,39 @@ const rest = new REST({ version: '10' }).setToken(token);
 const userWarns = {};
 const afkUsers = {};
 const userActivity = {};
+const userInfractions = {};  // Para llevar el control de las infracciones de cada usuario.
+
+const zalgoRegex = /[\u0300-\u036f]/; // Detecta ZALGO en el texto (caracteres diacríticos combinados)
+const inviteRegex = /discord\.gg|discord\.com|discordapp\.com/; // Detecta invitaciones de Discord.
+const floodRegex = /(.)\1{4,}/; // Detecta flood (repetición de caracteres más de 4 veces seguidas)
+const emojiSpamRegex = /(:[a-zA-Z0-9_]+:)+/; // Detecta spam de emojis.
+const imageSpamRegex = /\.(jpg|jpeg|png|gif|webp|tiff|bmp)$/; // Detecta spam de imágenes (URLs que terminan en .jpg, .png, etc.)
+
+// Definir la configuración de spam de imágenes
+const imageSpamLimit = 5; // Límite de imágenes permitidas en el intervalo
+const imageSpamInterval = 10000; // Intervalo de tiempo en ms (10 segundos)
+
+// Mantenemos un registro de las imágenes enviadas por los usuarios
+const userImageSpam = {};
+
+function checkAutoModRules(message) {
+    if (floodRegex.test(message.content)) {
+        return 'flood';
+    }
+    if (inviteRegex.test(message.content)) {
+        return 'invite';
+    }
+    if (zalgoRegex.test(message.content)) {
+        return 'zalgo';
+    }
+    if (emojiSpamRegex.test(message.content)) {
+        return 'emoji_spam';
+    }
+    if (imageSpamRegex.test(message.content)) {
+        return 'image_spam';
+    }
+    return null;
+}
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -97,12 +127,71 @@ client.on('ready', async () => {
     client.user.setActivity('Próximamente...', { type: 'PLAYING' });
 });
 
-client.on('messageCreate', (message) => {
+client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     if (!userActivity[message.author.id]) {
         userActivity[message.author.id] = 0;
     }
     userActivity[message.author.id]++;
+
+    // Verificación de las reglas de automoderación
+    const infraction = checkAutoModRules(message);
+    if (infraction) {
+        const user = message.author;
+        if (!userInfractions[user.id]) {
+            userInfractions[user.id] = {};
+        }
+
+        // Inicializar las infracciones para esta regla
+        if (!userInfractions[user.id][infraction]) {
+            userInfractions[user.id][infraction] = 0;
+        }
+
+        userInfractions[user.id][infraction]++;
+
+        if (userInfractions[user.id][infraction] === 1) {
+            // Primera infracción: Eliminar el mensaje
+            await message.delete();
+            await message.channel.send(`${user.tag}, has infringido la regla: ${infraction}. Tu mensaje ha sido eliminado.`);
+        } else if (userInfractions[user.id][infraction] === 2) {
+            // Segunda infracción: Silenciar temporalmente (timeout)
+            const member = await message.guild.members.fetch(user.id);
+            await member.timeout(3600000); // 1 hora = 3600000 ms
+            await message.channel.send(`${user.tag}, has infringido la regla: ${infraction} por segunda vez. Has sido silenciado durante 1 hora.`);
+            // Reseteamos las infracciones de esta regla
+            userInfractions[user.id][infraction] = 0;
+        }
+    }
+
+    // Verificación de spam de imágenes
+    if (imageSpamRegex.test(message.content)) {
+        const user = message.author;
+
+        // Verificar si el usuario tiene registros previos de spam de imágenes
+        if (!userImageSpam[user.id]) {
+            userImageSpam[user.id] = [];
+        }
+
+        // Limpiar registros antiguos de imágenes (si pasó más de 'imageSpamInterval' ms)
+        userImageSpam[user.id] = userImageSpam[user.id].filter(timestamp => Date.now() - timestamp < imageSpamInterval);
+
+        // Agregar la nueva imagen al registro de imágenes enviadas
+        userImageSpam[user.id].push(Date.now());
+
+        // Si el usuario ha enviado más de 'imageSpamLimit' imágenes en el intervalo
+        if (userImageSpam[user.id].length > imageSpamLimit) {
+            // Primera infracción: Eliminar el mensaje
+            await message.delete();
+            await message.channel.send(`${user.tag}, has enviado demasiadas imágenes en un corto período de tiempo. Tu mensaje ha sido eliminado.`);
+
+            // Segunda infracción: Silenciar temporalmente
+            setTimeout(async () => {
+                const member = await message.guild.members.fetch(user.id);
+                await member.timeout(3600000); // 1 hora = 3600000 ms
+                await message.channel.send(`${user.tag}, has sido silenciado durante 1 hora por enviar demasiadas imágenes.`);
+            }, 5000); // Aplazar para dar tiempo a la eliminación del mensaje.
+        }
+    }
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -194,13 +283,9 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply('No pude bloquear el canal.');
         }
     } else if (commandName === 'avatar') {
-        const usuario = options.getUser('usuario') || user; // Si no se pasa un usuario, se usa el que interactúa
-        await interaction.reply({ content: `${usuario.tag}'s Avatar`, files: [usuario.displayAvatarURL()] });
-    } else if (commandName === 'top') {
-        const topUsers = Object.keys(userActivity)
-            .sort((a, b) => userActivity[b] - userActivity[a])
-            .slice(0, 10); // Top 10 usuarios
-        await interaction.reply(`Top 10 usuarios más activos:\n${topUsers.map(id => `<@${id}>`).join('\n')}`);
+        const usuario = options.getUser('usuario') || user;
+        const avatarURL = usuario.displayAvatarURL({ dynamic: true, size: 1024 });
+        await interaction.reply({ content: `${usuario.tag}'s avatar:`, files: [avatarURL] });
     } else if (commandName === 'purge') {
         const cantidad = options.getInteger('cantidad');
         if (cantidad && cantidad > 0 && cantidad <= 100) {
