@@ -121,5 +121,3 @@ client.on('interactionCreate', async (interaction) => {
         try {
             await interaction.guild.members.kick(usuario);
             await usuario.send('Has sido sancionado. Tipo de sanción aplicada: kick.');
-            await interaction.reply(`${usuario.tag} ha sido expulsado.`);
-        }
