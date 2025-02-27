@@ -1,16 +1,15 @@
 const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js');
 const { REST } = require('@discordjs/rest');
-const keep_alive = require('./keep_alive.js');
 const token = process.env.DISCORD_TOKEN;
 
 const client = new Client({
     intents: [
-        'GUILDS',
-        'GUILD_MEMBERS',
-        'GUILD_MESSAGES',
-        'MESSAGE_CONTENT',
-        'GUILD_INVITES',
-        'GUILD_MESSAGE_REACTIONS'
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildInvites,
+        GatewayIntentBits.GuildMessageReactions
     ]
 });
 
@@ -38,7 +37,7 @@ const commands = [
         description: 'Silencia a un usuario',
         options: [
             { name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true },
-            { name: 'duracion', type: 4, description: 'Duracion del silencio en minutos', required: true },
+            { name: 'duracion', type: 4, description: 'Duración del silencio en minutos', required: true },
         ],
     },
     {
