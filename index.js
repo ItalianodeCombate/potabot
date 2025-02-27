@@ -184,3 +184,8 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply('No pude enviar el mensaje. Asegúrate de que el usuario tenga los mensajes directos activados.');
         }
     } else if (commandName === 'lockdown') {
+        try {
+            await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, { SEND_MESSAGES: false });
+            await interaction.reply('Canal bloqueado.');
+        } catch (error) {
+            console.error(error);
