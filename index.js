@@ -36,8 +36,8 @@ const commands = [
         name: 'mute',
         description: 'Silencia a un usuario',
         options: [
-            { name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true },
             { name: 'duracion', type: 4, description: 'Duración del silencio en minutos', required: true },
+            { name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true }
         ],
     },
     {
@@ -89,9 +89,9 @@ const commands = [
         name: 'autorole',
         description: 'Añadir o quitar un autorol',
         options: [
+            { name: 'rol', type: 8, description: 'Rol', required: true },
             { name: 'add', type: 5, description: 'Añadir autorol', required: false },
-            { name: 'remove', type: 5, description: 'Eliminar autorol', required: false },
-            { name: 'rol', type: 8, description: 'Rol', required: true }
+            { name: 'remove', type: 5, description: 'Eliminar autorol', required: false }
         ]
     },
     {
@@ -277,4 +277,3 @@ client.on('interactionCreate', async (interaction) => {
 });
 
 client.login(token);
-
