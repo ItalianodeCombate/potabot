@@ -4,6 +4,7 @@ const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js'
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildInvites] });
 const token = process.env.DISCORD_TOKEN;
+
 const commands = [
     { name: 'ping', description: 'Responde con pong!' },
     { name: 'say', description: 'Repite lo que digas', options: [{ name: 'texto', type: 3, description: 'Texto a repetir', required: true }] },
@@ -25,13 +26,13 @@ const commands = [
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
-const userWarns = {};
-const afkUsers = {};
-const userActivity = {};
-const autoRoles = new Set();
-const secureChannels = {};
-const actionLog = [];
-const inviteChannels = {};
+let userWarns = {};
+let afkUsers = {};
+let userActivity = {};
+let autoRoles = new Set();
+let secureChannels = {};
+let actionLog = [];
+let inviteChannels = {};
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -121,3 +122,12 @@ client.on('interactionCreate', async (interaction) => {
         try {
             await interaction.guild.members.kick(usuario);
             await usuario.send('Has sido sancionado. Tipo de sanción aplicada: kick.');
+            await interaction.reply(`${usuario.tag} ha sido expulsado.`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('No pude expulsar a ese usuario.');
+        }
+    }
+    // Continuar con las demás interacciones de comandos según sea necesario
+});
+
