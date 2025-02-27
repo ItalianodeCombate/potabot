@@ -4,6 +4,7 @@ const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js'
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const token = process.env.DISCORD_TOKEN;
+
 const commands = [
     {
         name: 'ping',
@@ -107,6 +108,7 @@ client.on('messageCreate', (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const { commandName, options, user, channel } = interaction;
+
     if (commandName === 'ping') {
         await interaction.reply('Pong!');
     } else if (commandName === 'say') {
@@ -191,8 +193,28 @@ client.on('interactionCreate', async (interaction) => {
             console.error(error);
             await interaction.reply('No pude bloquear el canal.');
         }
+    } else if (commandName === 'avatar') {
+        const usuario = options.getUser('usuario') || user; // Si no se pasa un usuario, se usa el que interactúa
+        await interaction.reply({ content: `${usuario.tag}'s Avatar`, files: [usuario.displayAvatarURL()] });
+    } else if (commandName === 'top') {
+        const topUsers = Object.keys(userActivity)
+            .sort((a, b) => userActivity[b] - userActivity[a])
+            .slice(0, 10); // Top 10 usuarios
+        await interaction.reply(`Top 10 usuarios más activos:\n${topUsers.map(id => `<@${id}>`).join('\n')}`);
+    } else if (commandName === 'purge') {
+        const cantidad = options.getInteger('cantidad');
+        if (cantidad && cantidad > 0 && cantidad <= 100) {
+            try {
+                await interaction.channel.bulkDelete(cantidad, true);
+                await interaction.reply(`Se han eliminado ${cantidad} mensajes.`);
+            } catch (error) {
+                console.error(error);
+                await interaction.reply('No pude eliminar los mensajes.');
+            }
+        } else {
+            await interaction.reply('Por favor, ingresa un número válido entre 1 y 100.');
+        }
     }
 });
 
 client.login(token);
-
