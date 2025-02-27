@@ -4,7 +4,6 @@ const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js'
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 const token = process.env.DISCORD_TOKEN;
-
 const commands = [
     {
         name: 'ping',
@@ -91,12 +90,8 @@ client.on('ready', async () => {
         console.log('Started refreshing application (/) commands.');
         await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
         console.log('Successfully reloaded application (/) commands.');
-
-        // Verificar los comandos registrados
-        const registeredCommands = await rest.get(Routes.applicationCommands(client.user.id));
-        console.log('Comandos registrados:', registeredCommands);
     } catch (error) {
-        console.error('Error al registrar los comandos:', error);
+        console.error(error);
     }
     client.user.setActivity('Próximamente...', { type: 'PLAYING' });
 });
@@ -110,14 +105,8 @@ client.on('messageCreate', (message) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-    console.log(`Comando recibido: ${interaction.commandName}`);  // Esto te ayudará a verificar qué comando está siendo recibido.
-
     if (!interaction.isChatInputCommand()) return;
-
     const { commandName, options, user, channel } = interaction;
-
-    console.log(`Comando: ${commandName} de usuario ${user.tag}`); // Log adicional para asegurar que el bot está procesando el comando.
-
     if (commandName === 'ping') {
         await interaction.reply('Pong!');
     } else if (commandName === 'say') {
@@ -195,36 +184,3 @@ client.on('interactionCreate', async (interaction) => {
             await interaction.reply('No pude enviar el mensaje. Asegúrate de que el usuario tenga los mensajes directos activados.');
         }
     } else if (commandName === 'lockdown') {
-        // Código para bloquear el canal (gestionando permisos)
-        if (!channel.permissionsFor(client.user).has('MANAGE_CHANNELS')) {
-            await interaction.reply('No tengo permisos para gestionar el canal.');
-            return;
-        }
-        await channel.permissionOverwrites.edit(channel.guild.roles.everyone, { SEND_MESSAGES: false });
-        await interaction.reply('El canal ha sido bloqueado.');
-    } else if (commandName === 'purge') {
-        // Verificar permisos de eliminar mensajes
-        if (!channel.permissionsFor(client.user).has('MANAGE_MESSAGES')) {
-            await interaction.reply('No tengo permisos para eliminar mensajes en este canal.');
-            return;
-        }
-        const cantidad = options.getInteger('cantidad');
-        const messages = await channel.messages.fetch({ limit: cantidad });
-        await channel.bulkDelete(messages);
-        await interaction.reply(`Se han eliminado ${cantidad} mensajes.`);
-    } else if (commandName === 'top') {
-        // Comando para mostrar los usuarios más activos
-        const topUsers = Object.entries(userActivity)
-            .sort((a, b) => b[1] - a[1]) // Ordenar por actividad
-            .slice(0, 5); // Top 5 usuarios más activos
-
-        const embed = new EmbedBuilder()
-            .setTitle('Usuarios más activos')
-            .setDescription(topUsers.map(([id, count]) => `<@${id}>: ${count} mensajes`).join('\n'));
-
-        await interaction.reply({ embeds: [embed] });
-    }
-});
-
-keep_alive();
-client.login(token);
