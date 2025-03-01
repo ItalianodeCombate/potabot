@@ -1,23 +1,14 @@
-const Discord = require('discord.js');
-const keep_alive = require('./keep_alive.js');
 const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildInvites] });
 const token = process.env.DISCORD_TOKEN;
 const commands = [
-    { name: 'ping', description: 'Responde con pong!' },
     { name: 'say', description: 'Repite lo que digas', options: [{ name: 'texto', type: 3, description: 'Texto a repetir', required: true }] },
-    { name: 'ban', description: 'Banea a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a banear', required: true }] },
-    { name: 'kick', description: 'Expulsa a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a expulsar', required: true }] },
-    { name: 'mute', description: 'Silencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true }, { name: 'duracion', type: 4, description: 'Duracion del silencio en minutos', required: true }] },
-    { name: 'unban', description: 'Desbanea a un usuario', options: [{ name: 'usuario_id', type: 3, description: 'ID del usuario a desbanear', required: true }] },
-    { name: 'unmute', description: 'Desilencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a desilenciar', required: true }] },
-    { name: 'warn', description: 'Advierte a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a advertir', required: true }] },
-    { name: 'afk', description: 'Activa/desactiva tu estado AFK' },
     { name: 'md_user', description: 'Envía un mensaje directo a un usuario específico', options: [{ name: 'usuario', type: 6, description: 'Usuario a quien enviar el mensaje', required: true }, { name: 'mensaje', type: 3, description: 'Mensaje a enviar', required: true }] },
-    { name: 'lockdown', description: 'Bloquea el canal actual' },
-    { name: 'avatar', description: 'Muestra el avatar de un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario del que mostrar el avatar', required: false }] },
-    { name: 'purge', description: 'Elimina una cantidad específica de mensajes', options: [{ name: 'cantidad', type: 4, description: 'Cantidad de mensajes a eliminar', required: true }] },
+    { name: 'ban', description: 'Banea a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a banear', required: true }] },
+    { name: 'tempban', description: 'Banea temporalmente a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a banear', required: true }, { name: 'duracion', type: 4, description: 'Duración del baneo en minutos', required: true }] },
+    { name: 'mute', description: 'Silencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true }, { name: 'duracion', type: 4, description: 'Duración del silencio en minutos', required: true }] },
+    { name: 'warn', description: 'Advierte a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a advertir', required: true }] },
     { name: 'top', description: 'Muestra los usuarios más activos' },
     { name: 'autorole', description: 'Gestiona los autoroles', options: [{ name: 'add', type: 1, description: 'Añade un autorol', options: [{ name: 'rol', type: 8, description: 'Rol a añadir', required: true }] }, { name: 'remove', type: 1, description: 'Elimina un autorol', options: [{ name: 'rol', type: 8, description: 'Rol a eliminar', required: true }] }] },
     { name: 'securemode', description: 'Activa el modo seguro en un canal', options: [{ name: 'canal', type: 7, description: 'Canal a proteger', required: true }] },
@@ -26,7 +17,6 @@ const commands = [
 
 const rest = new REST({ version: '10' }).setToken(token);
 const userWarns = {};
-const afkUsers = {};
 const userActivity = {};
 const autoRoles = new Set();
 const secureChannels = {};
@@ -101,11 +91,19 @@ function logAction(guildId, actionId, type) {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const { commandName, options, user, channel } = interaction;
-    if (commandName === 'ping') {
-        await interaction.reply('Pong!');
-    } else if (commandName === 'say') {
+    if (commandName === 'say') {
         const texto = options.getString('texto');
         await interaction.reply(texto);
+    } else if (commandName === 'md_user') {
+        const usuario = options.getUser('usuario');
+        const mensaje = options.getString('mensaje');
+        try {
+            await usuario.send(mensaje);
+            await interaction.reply(`Mensaje enviado a ${usuario.tag}.`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('No pude enviar el mensaje a ese usuario.');
+        }
     } else if (commandName === 'ban') {
         const usuario = options.getUser('usuario');
         try {
@@ -116,15 +114,19 @@ client.on('interactionCreate', async (interaction) => {
             console.error(error);
             await interaction.reply('No pude banear a ese usuario.');
         }
-    } else if (commandName === 'kick') {
+    } else if (commandName === 'tempban') {
         const usuario = options.getUser('usuario');
+        const duracion = options.getInteger('duracion');
         try {
-            await interaction.guild.members.kick(usuario);
-            await usuario.send('Has sido sancionado. Tipo de sanción aplicada: kick.');
-            await interaction.reply(`${usuario.tag} ha sido expulsado.`);
+            await interaction.guild.members.ban(usuario);
+            await usuario.send(`Has sido sancionado. Tipo de sanción aplicada: ban por ${duracion} minutos.`);
+            await interaction.reply(`${usuario.tag} ha sido baneado por ${duracion} minutos.`);
+            setTimeout(async () => {
+                await interaction.guild.members.unban(usuario);
+            }, duracion * 60000);
         } catch (error) {
             console.error(error);
-            await interaction.reply('No pude expulsar a ese usuario.');
+            await interaction.reply('No pude banear temporalmente a ese usuario.');
         }
     } else if (commandName === 'mute') {
         const usuario = options.getUser('usuario');
@@ -144,19 +146,14 @@ client.on('interactionCreate', async (interaction) => {
             console.error(error);
             await interaction.reply('No pude silenciar a ese usuario.');
         }
-    } else if (commandName === 'unmute') {
+    } else if (commandName === 'warn') {
         const usuario = options.getUser('usuario');
-        try {
-            const muteRole = interaction.guild.roles.cache.find(role => role.name === 'Muted');
-            if (!muteRole) {
-                return interaction.reply('No se encontró el rol "Muted".');
-            }
-            await usuario.roles.remove(muteRole);
-            await interaction.reply(`${usuario.tag} ha sido desilenciado.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude desilenciar a ese usuario.');
+        if (!userWarns[usuario.id]) {
+            userWarns[usuario.id] = 0;
         }
+        userWarns[usuario.id]++;
+        await usuario.send(`Has sido sancionado. Tipo de sanción aplicada: warn. Advertencias acumuladas: ${userWarns[usuario.id]}.`);
+        await interaction.reply(`${usuario.tag} ha sido advertido. Advertencias acumuladas: ${userWarns[usuario.id]}.`);
     } else if (commandName === 'top') {
         const sortedUsers = Object.entries(userActivity).sort((a, b) => b[1] - a[1]).slice(0, 10);
         const embed = new EmbedBuilder()
