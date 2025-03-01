@@ -7,7 +7,7 @@ const commands = [
     { name: 'say', description: 'Repite lo que digas', options: [{ name: 'texto', type: 3, description: 'Texto a repetir', required: true }] },
     { name: 'ban', description: 'Banea a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a banear', required: true }] },
     { name: 'kick', description: 'Expulsa a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a expulsar', required: true }] },
-    { name: 'mute', description: 'Silencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true }, { name: 'duracion', type: 4, description: 'Duracion del silencio en minutos', required: true }] },
+    { name: 'mute', description: 'Silencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true }, { name: 'duracion', type: 4, description: 'Duración del silencio en minutos', required: true }] },
     { name: 'unban', description: 'Desbanea a un usuario', options: [{ name: 'usuario_id', type: 3, description: 'ID del usuario a desbanear', required: true }] },
     { name: 'unmute', description: 'Desilencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a desilenciar', required: true }] },
     { name: 'warn', description: 'Advierte a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a advertir', required: true }] },
@@ -227,6 +227,30 @@ client.on('interactionCreate', async interaction => {
         } else if (subcommand === 'remove') {
             delete inviteChannels[interaction.guild.id];
             await interaction.reply(`El canal de invitaciones ha sido eliminado.`);
+        }
+    } else if (commandName === 'avatar') {
+        let usuario = options.getUser('usuario');
+        if (!usuario) {
+            usuario = user; // Si no se pasa un usuario, usamos el que ejecutó el comando
+        }
+        const avatarURL = usuario.displayAvatarURL({ dynamic: true, size: 1024 });
+        const embed = new EmbedBuilder()
+            .setTitle(`${usuario.tag} - Avatar`)
+            .setImage(avatarURL);
+        await interaction.reply({ embeds: [embed] });
+    } else if (commandName === 'purge') {
+        const cantidad = options.getInteger('cantidad');
+        if (!cantidad || cantidad < 1 || cantidad > 100) {
+            return interaction.reply('Por favor, proporciona un número entre 1 y 100 para la cantidad de mensajes a eliminar.');
+        }
+
+        try {
+            const messages = await interaction.channel.messages.fetch({ limit: cantidad });
+            await interaction.channel.bulkDelete(messages, true);
+            await interaction.reply(`${cantidad} mensajes eliminados.`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('Ocurrió un error al intentar eliminar los mensajes.');
         }
     }
 });
