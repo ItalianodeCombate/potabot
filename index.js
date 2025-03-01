@@ -30,7 +30,7 @@ const afkUsers = {};
 const userActivity = {};
 const autoRoles = new Set();
 const secureChannels = {};
-const actionLog =;
+let actionLog = [];
 const inviteChannels = {};
 
 client.on('ready', async () => {
@@ -126,117 +126,33 @@ client.on('interactionCreate', async (interaction) => {
             console.error(error);
             await interaction.reply('No pude expulsar a ese usuario.');
         }
-    } else if (commandName === 'mute') {
-        const usuario = options.getUser('usuario');
-        const duracion = options.getInteger('duracion');
-        try {
-            await interaction.guild.members.cache.get(usuario.id).timeout(duracion * 60000);
-            await usuario.send(`Has sido sancionado. Tipo de sanción aplicada: mute.`);
-            await interaction.reply(`${usuario.tag} ha sido silenciado durante ${duracion} minutos.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude silenciar a ese usuario.');
-        }
-    } else if (commandName === 'unban') {
-        const usuarioId = options.getString('usuario_id');
-        try {
-            await interaction.guild.members.unban(usuarioId);
-            await interaction.reply(`El usuario con ID ${usuarioId} ha sido desbaneado.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude desbanear a ese usuario.');
-        }
-    } else if (commandName === 'unmute') {
-        const usuario = options.getUser('usuario');
-        try {
-            await interaction.guild.members.cache.get(usuario.id).timeout(null);
-            await interaction.reply(`${usuario.tag} ha sido desilenciado.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude desilenciar a ese usuario.');
-        }
-    } else if (commandName === 'warn') {
-        const usuario = options.getUser('usuario');
-        if (!userWarns[usuario.id]) {
-            userWarns[usuario.id] = 0;
-        }
-        userWarns[usuario.id]++;
-        await usuario.send(`Has sido sancionado. Tipo de sanción aplicada: warn.`);
-        await interaction.reply(`${usuario.tag} ha sido advertido. Total de advertencias: ${userWarns[usuario.id]}`);
-    } else if (commandName === 'afk') {
-        if (afkUsers[user.id]) {
-            delete afkUsers[user.id];
-            await interaction.reply('Ya no estás AFK.');
-        } else {
-            afkUsers[user.id] = true;
-            await interaction.reply('Ahora estás AFK.');
-        }
-    } else if (commandName === 'md_user') {
-        const usuario = options.getUser('usuario');
-        const mensaje = options.getString('mensaje');
-        try {
-            await usuario.send(mensaje);
-            await interaction.reply(`Mensaje enviado a ${usuario.tag}.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude enviar el mensaje. Asegúrate de que el usuario tenga los mensajes directos activados.');
-        }
-    } else if (commandName === 'lockdown') {
-        try {
-            await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, { SEND_MESSAGES: false });
-            await interaction.reply('Canal bloqueado.');
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude bloquear el canal.');
-        }
-    } else if (commandName === 'avatar') {
-        const usuario = options.getUser('usuario') || user;
-        await interaction.reply(usuario.displayAvatarURL({ dynamic: true, size: 2048 }));
-    } else if (commandName === 'purge') {
-        const cantidad = options.getInteger('cantidad');
-        try {
-            await channel.bulkDelete(cantidad, true);
-            await interaction.reply(`Se eliminaron ${cantidad} mensajes.`);
-        } catch (error) {
-            console.error(error);
-            await interaction.reply('No pude eliminar los mensajes.');
-        }
     } else if (commandName === 'top') {
-        const topUsers = Object.entries(userActivity)
-            .sort(([, a], [, b]) => b - a)
-            .slice(0, 10);
+        const sortedUsers = Object.entries(userActivity).sort((a, b) => b[1] - a[1]).slice(0, 10);
         const embed = new EmbedBuilder()
             .setTitle('Usuarios más activos')
-            .setColor('#0099ff')
-            .setDescription('Estos son los 10 usuarios más activos del servidor:')
-            .addFields(
-                topUsers.map(([userId, activity], index) => ({
-                    name: `${index + 1}. ${client.users.cache.get(userId)?.tag || 'Usuario desconocido'}`,
-                    value: `Mensajes: ${activity}`,
-                    inline: true,
-                }))
-            )
-            .setTimestamp();
+            .setColor(0x00AE86)
+            .setDescription(sortedUsers.map(([userId, count], index) => `${index + 1}. <@${userId}> - ${count} mensajes`).join('\n'));
         await interaction.reply({ embeds: [embed] });
     } else if (commandName === 'autorole') {
-        const subCommand = options.getSubcommand();
-        const role = options.getRole('rol');
-        if (subCommand === 'add') {
-            autoRoles.add(role.id);
-            await interaction.reply(`Rol ${role.name} añadido como autorol.`);
-        } else if (subCommand === 'remove') {
-            autoRoles.delete(role.id);
-            await interaction.reply(`Rol ${role.name} eliminado como autorol.`);
+        const subcommand = options.getSubcommand();
+        const rol = options.getRole('rol');
+        if (subcommand === 'add') {
+            autoRoles.add(rol.id);
+            await interaction.reply(`El rol ${rol.name} ha sido añadido como autorol.`);
+        } else if (subcommand === 'remove') {
+            autoRoles.delete(rol.id);
+            await interaction.reply(`El rol ${rol.name} ha sido eliminado como autorol.`);
         }
     } else if (commandName === 'securemode') {
-        const channelToSecure = options.getChannel('canal');
-        secureChannels[channelToSecure.id] = true;
-        await interaction.reply(`Modo seguro activado en ${channelToSecure.name}.`);
+        const canal = options.getChannel('canal');
+        secureChannels[canal.id] = true;
+        await canal.setRateLimitPerUser(10);
+        await interaction.reply(`El modo seguro ha sido activado en el canal ${canal.name}.`);
     } else if (commandName === 'invitechannel') {
-        const channelToLog = options.getChannel('canal');
-        inviteChannels[interaction.guild.id] = channelToLog.id;
-        await interaction.reply(`Canal de invitaciones establecido en ${channelToLog.name}.`);
+        const canal = options.getChannel('canal');
+        inviteChannels[interaction.guild.id] = canal.id;
+        await interaction.reply(`El canal de invitaciones ha sido establecido en ${canal.name}.`);
     }
-}); // <-- Aquí estaba el error: faltaba cerrar la función interactionCreate
+});
 
 client.login(token);
