@@ -19,7 +19,7 @@ const commands = [
     { name: 'top', description: 'Muestra los usuarios más activos' },
     { name: 'autorole', description: 'Gestiona los autoroles', options: [{ name: 'add', type: 1, description: 'Añade un autorol', options: [{ name: 'rol', type: 8, description: 'Rol a añadir', required: true }] }, { name: 'remove', type: 1, description: 'Elimina un autorol', options: [{ name: 'rol', type: 8, description: 'Rol a eliminar', required: true }] }] },
     { name: 'securemode', description: 'Activa el modo seguro en un canal', options: [{ name: 'canal', type: 7, description: 'Canal a proteger', required: true }] },
-    { name: 'invitechannel', description: 'Establece el canal de invitaciones', options: [{ name: 'canal', type: 7, description: 'Canal para registrar invitaciones', required: true }] },
+    { name: 'invitechannel', description: 'Gestiona el canal de invitaciones', options: [{ name: 'add', type: 1, description: 'Añade un canal de invitaciones', options: [{ name: 'canal', type: 7, description: 'Canal para registrar invitaciones', required: true }] }, { name: 'remove', type: 1, description: 'Elimina un canal de invitaciones', options: [{ name: 'canal', type: 7, description: 'Canal a eliminar', required: true }] }] },
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
@@ -219,9 +219,15 @@ client.on('interactionCreate', async interaction => {
         await canal.setRateLimitPerUser(10);
         await interaction.reply(`El modo seguro ha sido activado en el canal ${canal.name}.`);
     } else if (commandName === 'invitechannel') {
+        const subcommand = options.getSubcommand();
         const canal = options.getChannel('canal');
-        inviteChannels[interaction.guild.id] = canal.id;
-        await interaction.reply(`El canal de invitaciones ha sido establecido en ${canal.name}.`);
+        if (subcommand === 'add') {
+            inviteChannels[interaction.guild.id] = canal.id;
+            await interaction.reply(`El canal de invitaciones ha sido establecido en ${canal.name}.`);
+        } else if (subcommand === 'remove') {
+            delete inviteChannels[interaction.guild.id];
+            await interaction.reply(`El canal de invitaciones ha sido eliminado.`);
+        }
     }
 });
 
