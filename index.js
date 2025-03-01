@@ -3,12 +3,19 @@ const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildInvites] });
 const token = process.env.DISCORD_TOKEN;
 const commands = [
+    { name: 'ping', description: 'Responde con pong!' },
     { name: 'say', description: 'Repite lo que digas', options: [{ name: 'texto', type: 3, description: 'Texto a repetir', required: true }] },
-    { name: 'md_user', description: 'Envía un mensaje directo a un usuario específico', options: [{ name: 'usuario', type: 6, description: 'Usuario a quien enviar el mensaje', required: true }, { name: 'mensaje', type: 3, description: 'Mensaje a enviar', required: true }] },
     { name: 'ban', description: 'Banea a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a banear', required: true }] },
-    { name: 'tempban', description: 'Banea temporalmente a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a banear', required: true }, { name: 'duracion', type: 4, description: 'Duración del baneo en minutos', required: true }] },
-    { name: 'mute', description: 'Silencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true }, { name: 'duracion', type: 4, description: 'Duración del silencio en minutos', required: true }] },
+    { name: 'kick', description: 'Expulsa a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a expulsar', required: true }] },
+    { name: 'mute', description: 'Silencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a silenciar', required: true }, { name: 'duracion', type: 4, description: 'Duracion del silencio en minutos', required: true }] },
+    { name: 'unban', description: 'Desbanea a un usuario', options: [{ name: 'usuario_id', type: 3, description: 'ID del usuario a desbanear', required: true }] },
+    { name: 'unmute', description: 'Desilencia a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a desilenciar', required: true }] },
     { name: 'warn', description: 'Advierte a un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario a advertir', required: true }] },
+    { name: 'afk', description: 'Activa/desactiva tu estado AFK' },
+    { name: 'md_user', description: 'Envía un mensaje directo a un usuario específico', options: [{ name: 'usuario', type: 6, description: 'Usuario a quien enviar el mensaje', required: true }, { name: 'mensaje', type: 3, description: 'Mensaje a enviar', required: true }] },
+    { name: 'lockdown', description: 'Bloquea el canal actual' },
+    { name: 'avatar', description: 'Muestra el avatar de un usuario', options: [{ name: 'usuario', type: 6, description: 'Usuario del que mostrar el avatar', required: false }] },
+    { name: 'purge', description: 'Elimina una cantidad específica de mensajes', options: [{ name: 'cantidad', type: 4, description: 'Cantidad de mensajes a eliminar', required: true }] },
     { name: 'top', description: 'Muestra los usuarios más activos' },
     { name: 'autorole', description: 'Gestiona los autoroles', options: [{ name: 'add', type: 1, description: 'Añade un autorol', options: [{ name: 'rol', type: 8, description: 'Rol a añadir', required: true }] }, { name: 'remove', type: 1, description: 'Elimina un autorol', options: [{ name: 'rol', type: 8, description: 'Rol a eliminar', required: true }] }] },
     { name: 'securemode', description: 'Activa el modo seguro en un canal', options: [{ name: 'canal', type: 7, description: 'Canal a proteger', required: true }] },
@@ -22,6 +29,7 @@ const autoRoles = new Set();
 const secureChannels = {};
 const actionLog = [];
 const inviteChannels = {};
+const invitesCache = new Map();
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -33,21 +41,26 @@ client.on('ready', async () => {
         console.error(error);
     }
     client.user.setActivity('Próximamente...', { type: 'PLAYING' });
+
+    // Cache invites
+    client.guilds.cache.forEach(async guild => {
+        const invites = await guild.invites.fetch();
+        invitesCache.set(guild.id, invites);
+    });
 });
 
-client.on('messageCreate', (message) => {
-    if (message.author.bot) return;
-    if (!userActivity[message.author.id]) {
-        userActivity[message.author.id] = 0;
-    }
-    userActivity[message.author.id]++;
-    if (secureChannels[message.channel.id]) {
-        message.channel.setRateLimitPerUser(10);
-    }
+client.on('inviteCreate', async invite => {
+    const invites = await invite.guild.invites.fetch();
+    invitesCache.set(invite.guild.id, invites);
 });
 
-client.on('guildMemberAdd', async (member) => {
-    autoRoles.forEach((roleId) => {
+client.on('inviteDelete', async invite => {
+    const invites = await invite.guild.invites.fetch();
+    invitesCache.set(invite.guild.id, invites);
+});
+
+client.on('guildMemberAdd', async member => {
+    autoRoles.forEach(roleId => {
         const role = member.guild.roles.cache.get(roleId);
         if (role) {
             member.roles.add(role);
@@ -58,8 +71,11 @@ client.on('guildMemberAdd', async (member) => {
     if (channelId) {
         const channel = member.guild.channels.cache.get(channelId);
         if (channel) {
-            const invites = await member.guild.invites.fetch();
-            const invite = invites.find((i) => i.uses > 0);
+            const cachedInvites = invitesCache.get(member.guild.id);
+            const newInvites = await member.guild.invites.fetch();
+            invitesCache.set(member.guild.id, newInvites);
+
+            const invite = newInvites.find(i => cachedInvites.get(i.code).uses < i.uses);
             if (invite) {
                 channel.send(`${member.user.tag} fue invitado por ${invite.inviter.tag}. Invitaciones de ${invite.inviter.tag}: ${invite.uses}.`);
             }
@@ -67,16 +83,16 @@ client.on('guildMemberAdd', async (member) => {
     }
 });
 
-client.on('channelCreate', (channel) => logAction(channel.guild.id, channel.id, 'channelCreate'));
-client.on('channelDelete', (channel) => logAction(channel.guild.id, channel.id, 'channelDelete'));
-client.on('roleCreate', (role) => logAction(role.guild.id, role.id, 'roleCreate'));
-client.on('roleDelete', (role) => logAction(role.guild.id, role.id, 'roleDelete'));
+client.on('channelCreate', channel => logAction(channel.guild.id, channel.id, 'channelCreate'));
+client.on('channelDelete', channel => logAction(channel.guild.id, channel.id, 'channelDelete'));
+client.on('roleCreate', role => logAction(role.guild.id, role.id, 'roleCreate'));
+client.on('roleDelete', role => logAction(role.guild.id, role.id, 'roleDelete'));
 
 function logAction(guildId, actionId, type) {
     const now = Date.now();
     actionLog.push({ guildId, actionId, type, timestamp: now });
-    actionLog = actionLog.filter((action) => now - action.timestamp < 60000);
-    const recentActions = actionLog.filter((action) => action.guildId === guildId && now - action.timestamp < 60000);
+    actionLog = actionLog.filter(action => now - action.timestamp < 60000);
+    const recentActions = actionLog.filter(action => action.guildId === guildId && now - action.timestamp < 60000);
     if (recentActions.length > 3) {
         const userId = recentActions[0].actionId;
         const member = client.guilds.cache.get(guildId)?.members.cache.get(userId);
@@ -88,10 +104,40 @@ function logAction(guildId, actionId, type) {
     }
 }
 
-client.on('interactionCreate', async (interaction) => {
+client.on('messageCreate', message => {
+    if (message.author.bot) return;
+    if (!userActivity[message.author.id]) {
+        userActivity[message.author.id] = 0;
+    }
+    userActivity[message.author.id]++;
+    if (secureChannels[message.channel.id]) {
+        message.channel.setRateLimitPerUser(10);
+    }
+
+    // Automoderación
+    if (message.mentions.users.size > 5) {
+        message.delete();
+        message.author.send('No puedes mencionar a tantas personas a la vez.');
+    }
+
+    const maliciousLinks = ['example.com', 'malicious.com'];
+    if (maliciousLinks.some(link => message.content.includes(link))) {
+        message.delete();
+        message.author.send('No puedes enviar enlaces maliciosos.');
+    }
+
+    if (message.content.includes('discord.gg/')) {
+        message.delete();
+        message.author.send('No puedes enviar invitaciones de Discord.');
+    }
+});
+
+client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
     const { commandName, options, user, channel } = interaction;
-    if (commandName === 'say') {
+    if (commandName === 'ping') {
+        await interaction.reply('Pong!');
+    } else if (commandName === 'say') {
         const texto = options.getString('texto');
         await interaction.reply(texto);
     } else if (commandName === 'md_user') {
@@ -114,19 +160,15 @@ client.on('interactionCreate', async (interaction) => {
             console.error(error);
             await interaction.reply('No pude banear a ese usuario.');
         }
-    } else if (commandName === 'tempban') {
+    } else if (commandName === 'kick') {
         const usuario = options.getUser('usuario');
-        const duracion = options.getInteger('duracion');
         try {
-            await interaction.guild.members.ban(usuario);
-            await usuario.send(`Has sido sancionado. Tipo de sanción aplicada: ban por ${duracion} minutos.`);
-            await interaction.reply(`${usuario.tag} ha sido baneado por ${duracion} minutos.`);
-            setTimeout(async () => {
-                await interaction.guild.members.unban(usuario);
-            }, duracion * 60000);
+            await interaction.guild.members.kick(usuario);
+            await usuario.send('Has sido sancionado. Tipo de sanción aplicada: kick.');
+            await interaction.reply(`${usuario.tag} ha sido expulsado.`);
         } catch (error) {
             console.error(error);
-            await interaction.reply('No pude banear temporalmente a ese usuario.');
+            await interaction.reply('No pude expulsar a ese usuario.');
         }
     } else if (commandName === 'mute') {
         const usuario = options.getUser('usuario');
