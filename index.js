@@ -30,7 +30,7 @@ const afkUsers = {};
 const userActivity = {};
 const autoRoles = new Set();
 const secureChannels = {};
-let actionLog = [];
+const actionLog = [];
 const inviteChannels = {};
 
 client.on('ready', async () => {
@@ -125,6 +125,37 @@ client.on('interactionCreate', async (interaction) => {
         } catch (error) {
             console.error(error);
             await interaction.reply('No pude expulsar a ese usuario.');
+        }
+    } else if (commandName === 'mute') {
+        const usuario = options.getUser('usuario');
+        const duracion = options.getInteger('duracion');
+        try {
+            const muteRole = interaction.guild.roles.cache.find(role => role.name === 'Muted');
+            if (!muteRole) {
+                return interaction.reply('No se encontró el rol "Muted".');
+            }
+            await usuario.roles.add(muteRole);
+            setTimeout(() => {
+                usuario.roles.remove(muteRole);
+            }, duracion * 60000);
+            await usuario.send(`Has sido sancionado. Tipo de sanción aplicada: mute por ${duracion} minutos.`);
+            await interaction.reply(`${usuario.tag} ha sido silenciado por ${duracion} minutos.`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('No pude silenciar a ese usuario.');
+        }
+    } else if (commandName === 'unmute') {
+        const usuario = options.getUser('usuario');
+        try {
+            const muteRole = interaction.guild.roles.cache.find(role => role.name === 'Muted');
+            if (!muteRole) {
+                return interaction.reply('No se encontró el rol "Muted".');
+            }
+            await usuario.roles.remove(muteRole);
+            await interaction.reply(`${usuario.tag} ha sido desilenciado.`);
+        } catch (error) {
+            console.error(error);
+            await interaction.reply('No pude desilenciar a ese usuario.');
         }
     } else if (commandName === 'top') {
         const sortedUsers = Object.entries(userActivity).sort((a, b) => b[1] - a[1]).slice(0, 10);
