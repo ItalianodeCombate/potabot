@@ -2,6 +2,9 @@ const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js'
 const { REST } = require('@discordjs/rest');
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildInvites] });
 const token = process.env.DISCORD_TOKEN;
+const express = require('express')
+const app = express()
+const port = process.env.PORT || 4000;
 const commands = [
     { name: 'ping', description: 'Responde con pong!' },
     { name: 'say', description: 'Repite lo que digas', options: [{ name: 'texto', type: 3, description: 'Texto a repetir', required: true }] },
