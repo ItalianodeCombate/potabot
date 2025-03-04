@@ -32,6 +32,9 @@ const commands = [
     { name: 'autorole', description: 'Gestiona los autoroles', options: [{ name: 'add', type: 1, description: 'Añade un autorol', options: [{ name: 'rol', type: 8, description: 'Rol a añadir', required: true }] }, { name: 'remove', type: 1, description: 'Elimina un autorol', options: [{ name: 'rol', type: 8, description: 'Rol a eliminar', required: true }] }] },
     { name: 'securemode', description: 'Activa el modo seguro en un canal', options: [{ name: 'canal', type: 7, description: 'Canal a proteger', required: true }] },
     { name: 'invitechannel', description: 'Gestiona el canal de invitaciones', options: [{ name: 'add', type: 1, description: 'Añade un canal de invitaciones', options: [{ name: 'canal', type: 7, description: 'Canal para registrar invitaciones', required: true }] }, { name: 'remove', type: 1, description: 'Elimina un canal de invitaciones', options: [{ name: 'canal', type: 7, description: 'Canal a eliminar', required: true }] }] },
+    { name: 'help', description: 'Muestra todos los comandos del bot' },
+    { name: 'bienvenida', description: 'Establece un mensaje de bienvenida para los nuevos miembros', options: [{ name: 'mensaje', type: 3, description: 'Mensaje de bienvenida', required: true }] },
+    { name: 'setlogchannel', description: 'Establece un canal para los registros de acciones del servidor', options: [{ name: 'canal', type: 7, description: 'Canal de registros', required: true }] },
 ];
 
 const rest = new REST({ version: '10' }).setToken(token);
@@ -42,6 +45,7 @@ let secureChannels = {};
 let actionLog = [];
 let inviteChannels = {};
 let invitesCache = new Map();
+let logChannelId = {};  // Nuevo objeto para los canales de log
 
 client.on('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -93,6 +97,12 @@ client.on('guildMemberAdd', async member => {
             }
         }
     }
+
+    // Send welcome message if defined
+    const welcomeMessage = client.guilds.cache.get(member.guild.id)?.welcomeMessage;
+    if (welcomeMessage) {
+        member.send(welcomeMessage).catch(console.error);
+    }
 });
 
 client.on('channelCreate', channel => logAction(channel.guild.id, channel.id, 'channelCreate'));
@@ -101,18 +111,15 @@ client.on('roleCreate', role => logAction(role.guild.id, role.id, 'roleCreate'))
 client.on('roleDelete', role => logAction(role.guild.id, role.id, 'roleDelete'));
 
 function logAction(guildId, actionId, type) {
-    const now = Date.now();
-    actionLog = actionLog.filter(action => now - action.timestamp < 60000);
-    actionLog.push({ guildId, actionId, type, timestamp: now });
-
-    const recentActions = actionLog.filter(action => action.guildId === guildId && now - action.timestamp < 60000);
-    if (recentActions.length > 3) {
-        const userId = recentActions[0].actionId;
-        const member = client.guilds.cache.get(guildId)?.members.cache.get(userId);
-        if (member) {
-            member.ban({ reason: 'Antiraid' }).then(() => {
-                member.send('Has sido baneado por el antiraid.');
-            });
+    if (logChannelId[guildId]) {
+        const logChannel = client.guilds.cache.get(guildId)?.channels.cache.get(logChannelId[guildId]);
+        if (logChannel) {
+            const embed = new EmbedBuilder()
+                .setTitle('Acción del servidor')
+                .setDescription(`Tipo: ${type}\nID de la acción: ${actionId}`)
+                .setColor(0x00AE86)
+                .setTimestamp();
+            logChannel.send({ embeds: [embed] });
         }
     }
 }
@@ -260,6 +267,22 @@ client.on('interactionCreate', async interaction => {
         const cantidad = options.getInteger('cantidad');
         const deletedMessages = await channel.bulkDelete(cantidad, true);
         await interaction.reply(`${deletedMessages.size} mensajes han sido eliminados.`);
+    } else if (commandName === 'help') {
+        // Generar y enviar el embed con todos los comandos
+        const helpEmbed = new EmbedBuilder()
+            .setTitle('Comandos del bot')
+            .setColor(0x00AE86)
+            .setDescription(commands.map(cmd => `/${cmd.name}: ${cmd.description}`).join('\n'));
+        await interaction.reply({ embeds: [helpEmbed] });
+    } else if (commandName === 'bienvenida') {
+        const mensaje = options.getString('mensaje');
+        const guild = interaction.guild;
+        guild.welcomeMessage = mensaje;  // Guardamos el mensaje de bienvenida para el servidor
+        await interaction.reply(`Mensaje de bienvenida establecido: ${mensaje}`);
+    } else if (commandName === 'setlogchannel') {
+        const canal = options.getChannel('canal');
+        logChannelId[interaction.guild.id] = canal.id;
+        await interaction.reply(`Canal de registros establecido en ${canal.name}`);
     }
 });
 
