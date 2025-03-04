@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js');
 const { REST } = require('@discordjs/rest');
-const keep_alive = require('./keep_alive.js'); // Requerir el archivo keep_alive.js
+const keep_alive = require('./keep_alive.js'); // Requiere el archivo keep_alive.js
+const https = require('https');
 
 const client = new Client({
     intents: [
