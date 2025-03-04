@@ -270,9 +270,31 @@ client.on('interactionCreate', async interaction => {
     } else if (commandName === 'help') {
         // Generar y enviar el embed con todos los comandos
         const helpEmbed = new EmbedBuilder()
-            .setTitle('Comandos del bot')
-            .setColor(0x00AE86)
-            .setDescription(commands.map(cmd => `/${cmd.name}: ${cmd.description}`).join('\n'));
+            .setColor('#3498db')  // Color del embed (puedes cambiar el código de color)
+            .setTitle('Comandos del Bot')
+            .setDescription('Aquí tienes una lista de los comandos disponibles en el bot.')
+            .setFooter({ text: '¡Disfruta de la experiencia!' })
+            .setTimestamp();
+
+        // Añadir los comandos al embed
+        helpEmbed.addFields(
+            { name: '/ping', value: 'Responde con un "Pong!"' },
+            { name: '/say [texto]', value: 'Repite el texto que escribas.' },
+            { name: '/ban [usuario]', value: 'Banea a un usuario del servidor.' },
+            { name: '/kick [usuario]', value: 'Expulsa a un usuario del servidor.' },
+            { name: '/mute [usuario] [duración]', value: 'Silencia a un usuario por un tiempo determinado.' },
+            { name: '/unban [usuario_id]', value: 'Desbanea a un usuario usando su ID.' },
+            { name: '/warn [usuario]', value: 'Advierte a un usuario.' },
+            { name: '/top', value: 'Muestra los usuarios más activos.' },
+            { name: '/autorole [add/remove] [rol]', value: 'Añade o elimina un autorol.' },
+            { name: '/securemode [canal]', value: 'Activa el modo seguro en un canal.' },
+            { name: '/invitechannel [add/remove] [canal]', value: 'Gestiona el canal de invitaciones.' },
+            { name: '/avatar [usuario]', value: 'Muestra el avatar de un usuario.' },
+            { name: '/purge [cantidad]', value: 'Elimina una cantidad específica de mensajes.' },
+            { name: '/help', value: 'Muestra este mensaje de ayuda.' }
+        );
+
+        // Enviar el embed con los comandos al canal
         await interaction.reply({ embeds: [helpEmbed] });
     } else if (commandName === 'bienvenida') {
         const mensaje = options.getString('mensaje');
