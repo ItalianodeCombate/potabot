@@ -1,19 +1,15 @@
 const { Client, GatewayIntentBits, Routes, EmbedBuilder } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const keep_alive = require('./keep_alive.js'); // Requerir el archivo keep_alive.js
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildInvites] });
-const token = process.env.DISCORD_TOKEN;
-const port = process.env.PORT || 4000;  // Usa el puerto proporcionado por Render o 4000 como fallback
 
-// Crear el cliente de Discord
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildInvites
-  ]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildInvites
+    ]
 });
 
 const token = process.env.DISCORD_TOKEN;
@@ -48,7 +44,7 @@ const inviteChannels = {};
 const invitesCache = new Map();
 
 client.on('ready', async () => {
-    console.log(Logged in as ${client.user.tag}!);
+    console.log(`Logged in as ${client.user.tag}!`);
     try {
         console.log('Started refreshing application (/) commands.');
         await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
@@ -93,7 +89,7 @@ client.on('guildMemberAdd', async member => {
 
             const invite = newInvites.find(i => cachedInvites.get(i.code).uses < i.uses);
             if (invite) {
-                channel.send(${member.user.tag} fue invitado por ${invite.inviter.tag}. Invitaciones de ${invite.inviter.tag}: ${invite.uses}.);
+                channel.send(`${member.user.tag} fue invitado por ${invite.inviter.tag}. Invitaciones de ${invite.inviter.tag}: ${invite.uses}.`);
             }
         }
     }
@@ -132,19 +128,19 @@ client.on('messageCreate', message => {
 
     // Automoderación
     if (message.mentions.users.size > 5) {
-        message.delete();
-        message.author.send('No puedes mencionar a tantas personas a la vez.');
+        message.delete().catch(console.error);
+        message.author.send('No puedes mencionar a tantas personas a la vez.').catch(console.error);
     }
 
     const maliciousLinks = ['example.com', 'malicious.com'];
     if (maliciousLinks.some(link => message.content.includes(link))) {
-        message.delete();
-        message.author.send('No puedes enviar enlaces maliciosos.');
+        message.delete().catch(console.error);
+        message.author.send('No puedes enviar enlaces maliciosos.').catch(console.error);
     }
 
     if (message.content.includes('discord.gg/')) {
-        message.delete();
-        message.author.send('No puedes enviar invitaciones de Discord.');
+        message.delete().catch(console.error);
+        message.author.send('No puedes enviar invitaciones de Discord.').catch(console.error);
     }
 });
 
@@ -161,7 +157,7 @@ client.on('interactionCreate', async interaction => {
         const mensaje = options.getString('mensaje');
         try {
             await usuario.send(mensaje);
-            await interaction.reply(Mensaje enviado a ${usuario.tag}.);
+            await interaction.reply(`Mensaje enviado a ${usuario.tag}.`);
         } catch (error) {
             console.error(error);
             await interaction.reply('No pude enviar el mensaje a ese usuario.');
@@ -170,8 +166,8 @@ client.on('interactionCreate', async interaction => {
         const usuario = options.getUser('usuario');
         try {
             await interaction.guild.members.ban(usuario);
-            await usuario.send('Has sido sancionado. Tipo de sanción aplicada: ban.');
-            await interaction.reply(${usuario.tag} ha sido baneado.);
+            await usuario.send('Has sido sancionado. Tipo de sanción aplicada: ban.').catch(console.error);
+            await interaction.reply(`${usuario.tag} ha sido baneado.`);
         } catch (error) {
             console.error(error);
             await interaction.reply('No pude banear a ese usuario.');
@@ -180,8 +176,8 @@ client.on('interactionCreate', async interaction => {
         const usuario = options.getUser('usuario');
         try {
             await interaction.guild.members.kick(usuario);
-            await usuario.send('Has sido sancionado. Tipo de sanción aplicada: kick.');
-            await interaction.reply(${usuario.tag} ha sido expulsado.);
+            await usuario.send('Has sido sancionado. Tipo de sanción aplicada: kick.').catch(console.error);
+            await interaction.reply(`${usuario.tag} ha sido expulsado.`);
         } catch (error) {
             console.error(error);
             await interaction.reply('No pude expulsar a ese usuario.');
@@ -196,10 +192,10 @@ client.on('interactionCreate', async interaction => {
             }
             await usuario.roles.add(muteRole);
             setTimeout(() => {
-                usuario.roles.remove(muteRole);
+                usuario.roles.remove(muteRole).catch(console.error);
             }, duracion * 60000);
-            await usuario.send(Has sido sancionado. Tipo de sanción aplicada: mute por ${duracion} minutos.);
-            await interaction.reply(${usuario.tag} ha sido silenciado por ${duracion} minutos.);
+            await usuario.send(`Has sido sancionado. Tipo de sanción aplicada: mute por ${duracion} minutos.`).catch(console.error);
+            await interaction.reply(`${usuario.tag} ha sido silenciado por ${duracion} minutos.`);
         } catch (error) {
             console.error(error);
             await interaction.reply('No pude silenciar a ese usuario.');
@@ -210,39 +206,39 @@ client.on('interactionCreate', async interaction => {
             userWarns[usuario.id] = 0;
         }
         userWarns[usuario.id]++;
-        await usuario.send(Has sido sancionado. Tipo de sanción aplicada: warn. Advertencias acumuladas: ${userWarns[usuario.id]}.);
-        await interaction.reply(${usuario.tag} ha sido advertido. Advertencias acumuladas: ${userWarns[usuario.id]}.);
+        await usuario.send(`Has sido sancionado. Tipo de sanción aplicada: warn. Advertencias acumuladas: ${userWarns[usuario.id]}.`).catch(console.error);
+        await interaction.reply(`${usuario.tag} ha sido advertido. Advertencias acumuladas: ${userWarns[usuario.id]}.`);
     } else if (commandName === 'top') {
         const sortedUsers = Object.entries(userActivity).sort((a, b) => b[1] - a[1]).slice(0, 10);
         const embed = new EmbedBuilder()
             .setTitle('Usuarios más activos')
             .setColor(0x00AE86)
-            .setDescription(sortedUsers.map(([userId, count], index) => ${index + 1}. <@${userId}> - ${count} mensajes).join('\n'));
+            .setDescription(sortedUsers.map(([userId, count], index) => `${index + 1}. <@${userId}> - ${count} mensajes`).join('\n'));
         await interaction.reply({ embeds: [embed] });
     } else if (commandName === 'autorole') {
         const subcommand = options.getSubcommand();
         const rol = options.getRole('rol');
         if (subcommand === 'add') {
             autoRoles.add(rol.id);
-            await interaction.reply(El rol ${rol.name} ha sido añadido como autorol.);
+            await interaction.reply(`El rol ${rol.name} ha sido añadido como autorol.`);
         } else if (subcommand === 'remove') {
             autoRoles.delete(rol.id);
-            await interaction.reply(El rol ${rol.name} ha sido eliminado como autorol.);
+            await interaction.reply(`El rol ${rol.name} ha sido eliminado como autorol.`);
         }
     } else if (commandName === 'securemode') {
         const canal = options.getChannel('canal');
         secureChannels[canal.id] = true;
         await canal.setRateLimitPerUser(10);
-        await interaction.reply(El modo seguro ha sido activado en el canal ${canal.name}.);
+        await interaction.reply(`El modo seguro ha sido activado en el canal ${canal.name}.`);
     } else if (commandName === 'invitechannel') {
         const subcommand = options.getSubcommand();
         const canal = options.getChannel('canal');
         if (subcommand === 'add') {
             inviteChannels[interaction.guild.id] = canal.id;
-            await interaction.reply(El canal de invitaciones ha sido establecido en ${canal.name}.);
+            await interaction.reply(`El canal de invitaciones ha sido establecido en ${canal.name}.`);
         } else if (subcommand === 'remove') {
             delete inviteChannels[interaction.guild.id];
-            await interaction.reply(El canal de invitaciones ha sido eliminado.);
+            await interaction.reply(`El canal de invitaciones ha sido eliminado.`);
         }
     } else if (commandName === 'avatar') {
         let usuario = options.getUser('usuario');
@@ -251,7 +247,7 @@ client.on('interactionCreate', async interaction => {
         }
         const avatarURL = usuario.displayAvatarURL({ dynamic: true, size: 1024 });
         const embed = new EmbedBuilder()
-            .setTitle(${usuario.tag} - Avatar)
+            .setTitle(`${usuario.tag} - Avatar`)
             .setImage(avatarURL);
         await interaction.reply({ embeds: [embed] });
     } else if (commandName === 'purge') {
@@ -263,7 +259,7 @@ client.on('interactionCreate', async interaction => {
         try {
             const messages = await interaction.channel.messages.fetch({ limit: cantidad });
             await interaction.channel.bulkDelete(messages, true);
-            await interaction.reply(${cantidad} mensajes eliminados.);
+            await interaction.reply(`${cantidad} mensajes eliminados.`);
         } catch (error) {
             console.error(error);
             await interaction.reply('Ocurrió un error al intentar eliminar los mensajes.');
