@@ -1,6 +1,9 @@
+// keep_alive.js
+
 const express = require('express');
 const app = express();
 
+// Ruta para mantener el bot en línea
 app.get('/', (req, res) => {
   res.send('El bot está online!');
 });
@@ -11,5 +14,4 @@ function keepAlive() {
   });
 }
 
-module.exports = { keepAlive };  // Exportar la función para que pueda ser llamada
-
+module.exports = { keepAlive };  // Exportar la función keepAlive
