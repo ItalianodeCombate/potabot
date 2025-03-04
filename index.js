@@ -295,18 +295,34 @@ client.on('interactionCreate', async interaction => {
             { name: '/help', value: 'Muestra este mensaje de ayuda.' }
         );
 
-        // Enviar el embed con los comandos al canal
-        await interaction.reply({ embeds: [helpEmbed] });
-    } else if (commandName === 'bienvenida') {
-        const mensaje = options.getString('mensaje');
-        const guild = interaction.guild;
-        guild.welcomeMessage = mensaje;  // Guardamos el mensaje de bienvenida para el servidor
-        await interaction.reply(`Mensaje de bienvenida establecido: ${mensaje}`);
-    } else if (commandName === 'setlogchannel') {
-        const canal = options.getChannel('canal');
-        logChannelId[interaction.guild.id] = canal.id;
-        await interaction.reply(`Canal de registros establecido en ${canal.name}`);
-    }
+   // Enviar el embed con los comandos al canal
+    await interaction.reply({ embeds: [helpEmbed] });
+} else if (commandName === 'bienvenida') {
+    const mensaje = options.getString('mensaje');
+    const guild = interaction.guild;
+    guild.welcomeMessage = mensaje;  // Guardamos el mensaje de bienvenida para el servidor
+    await interaction.reply(`Mensaje de bienvenida establecido: ${mensaje}`);
+} else if (commandName === 'setlogchannel') {
+    const canal = options.getChannel('canal');
+    logChannelId[interaction.guild.id] = canal.id;
+    await interaction.reply(`Canal de registros establecido en ${canal.name}`);
+}
+
+// Gestión de eventos fuera de la lógica de comandos
+client.on('disconnect', () => {
+    console.log('Desconectado de Discord, reconectando...');
+    // Discord.js maneja la reconexión automáticamente, pero si necesitas un comportamiento personalizado:
+    // Puede incluir lógica adicional aquí si necesitas hacer algo extra en caso de desconexión
 });
 
-client.login(token);
+client.on('reconnecting', () => {
+    console.log('Reconectando al servidor de Discord...');
+});
+
+client.on('error', (error) => {
+    console.error('Error en el bot:', error);
+    // Si deseas reintentar la conexión, puedes incluir una lógica de reintento, pero no es necesario para Discord.js
+});
+
+// Iniciar sesión en Discord (este es solo necesario una vez, al inicio del bot)
+client.login(token).catch(console.error);
