@@ -15,6 +15,35 @@ const client = new Client({
 
 const token = process.env.DISCORD_TOKEN;
 
+// ... (tu código de comandos y eventos) ...
+
+client.on('ready', async () => {
+    console.log(`Logged in as ${client.user.tag}!`);
+    try {
+        console.log('Started refreshing application (/) commands.');
+        await rest.put(Routes.applicationCommands(client.user.id), { body: commands });
+        console.log('Successfully reloaded application (/) commands.');
+    } catch (error) {
+        console.error(error);
+    }
+    client.user.setActivity('Próximamente...', { type: 'PLAYING' });
+
+    // Cache invites on startup
+    client.guilds.cache.forEach(async guild => {
+        try {
+            const invites = await guild.invites.fetch();
+            invitesCache.set(guild.id, invites);
+        } catch (error) {
+            console.error(`Error fetching invites for guild ${guild.id}:`, error);
+        }
+    });
+
+    // ¡Llama a la función keepAlive aquí!
+    keep_alive.keepAlive();
+});
+
+const token = process.env.DISCORD_TOKEN;
+
 const commands = [
     { name: 'ping', description: 'Responde con pong!' },
     { name: 'say', description: 'Repite lo que digas', options: [{ name: 'texto', type: 3, description: 'Texto a repetir', required: true }] },
